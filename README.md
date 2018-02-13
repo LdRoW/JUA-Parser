@@ -5,7 +5,7 @@ A little bit stupid but it is only start
 
 Live in headers
 
-Just include jua.h and enjoy
+Just include <b>"jua.h"</b> and enjoy
 
 Work under MSVS 2015 Update 3 (only Windows OS are curently supported) ,other compilers I didn't test
 Copyright (C) 2018 
