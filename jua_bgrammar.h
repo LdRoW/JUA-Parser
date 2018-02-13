@@ -18,19 +18,19 @@ namespace jua
 	{
 		std::vector<jua_ast_node*> deletion_list;
 		virtual	jua_token* get_token() = 0;
-		virtual u32 get_token_count() = 0;
+		virtual unsigned int get_token_count() = 0;
 		virtual bool can_get_token() = 0;
-		virtual void set_used(u32 used) {};
-		virtual u32 get_used() = 0;
+		virtual void set_used(unsigned int used) {};
+		virtual unsigned int get_used() = 0;
 		virtual std::string getTokenByUniqueID(int uid) = 0;
 		virtual jua_rule_b& createRule(int lexemType=-1) = 0;
-		virtual jua_rule_b& getRule(u32 id) = 0;
+		virtual jua_rule_b& getRule(unsigned int id) = 0;
 		virtual bool isPunctuation(int uid) = 0;
 	};
 	jua_grammar_impl* global_lexer = 0;
 	/*struct jua_expected
 	{
-		jua_expected(int str, u32 d)
+		jua_expected(int str, unsigned int d)
 		{
 			what = str;
 			depth = d;
@@ -45,7 +45,7 @@ namespace jua
 	{
 	private:
 	public:
-		std::vector<u32> childs;
+		std::vector<unsigned int> childs;
 		int ruleId = -1;
 		int lexemType = -1;
 		enum EFlags
@@ -58,7 +58,7 @@ namespace jua
 			ePushCifStart = 0x20,
 			eCreateAstNode = 0x40
 		};
-		u32 Flags = 0;
+		unsigned int Flags = 0;
 		inline	bool isStar()const
 		{
 			return Flags&eStar;
@@ -93,7 +93,7 @@ namespace jua
 		} ruleType = none_r;
 
 		jua_rule_b() {  };
-		jua_rule_b(u32 lextype) {
+		jua_rule_b(unsigned int lextype) {
 			this->lexemType = lextype;
 			this->ruleType = none_r;
 		}
@@ -113,11 +113,11 @@ namespace jua
 				if (this->isStar() || this->isPlus())
 				{
 					int num = 0;
-					u32 used = global_lexer->get_used();
+					unsigned int used = global_lexer->get_used();
 					auto node = func_c(); bool isrSt = false;
 					while (true)
 					{
-						for (u32 n = 0; n < childs.size(); ++n)
+						for (unsigned int n = 0; n < childs.size(); ++n)
 						{
 							used = global_lexer->get_used();
 							jua_rule_b& rule = global_lexer->getRule(childs[n]);
@@ -164,7 +164,7 @@ namespace jua
 					auto used = global_lexer->get_used();
 					auto node = func_c();
 					bool isrSt = false;
-					for (u32 n = 0; n < childs.size(); ++n)
+					for (unsigned int n = 0; n < childs.size(); ++n)
 					{
 						jua_rule_b& rule = global_lexer->getRule(childs[n]);
 						res = rule.scan_x3();
@@ -209,12 +209,12 @@ namespace jua
 				if (this->isStar() || this->isPlus())
 				{
 					int num = 0;
-					u32 used = global_lexer->get_used();
+					unsigned int used = global_lexer->get_used();
 					auto node = func_c();
 					bool isrSt = false;
 					while (true)
 					{
-						for (u32 n = 0; n < childs.size(); ++n)
+						for (unsigned int n = 0; n < childs.size(); ++n)
 						{
 							used = global_lexer->get_used();
 							jua_rule_b& rule = global_lexer->getRule(childs[n]);
@@ -258,10 +258,10 @@ namespace jua
 				}
 				else
 				{
-					u32 used = 0;
+					unsigned int used = 0;
 					auto node = func_c();
 					bool isrSt = false;
-					for (u32 n = 0; n < childs.size(); ++n)
+					for (unsigned int n = 0; n < childs.size(); ++n)
 					{
 						used = global_lexer->get_used();
 						jua_rule_b& rule = global_lexer->getRule(childs[n]);
@@ -334,7 +334,7 @@ namespace jua
 				{
 					auto& lval = global_lexer->createRule(-1);
 					lval.childs = this->childs;
-					lval.ruleType = or_r;
+					lval.ruleType = lval.or_r;
 					this->ruleId = lval.ruleId;
 				}
 				r.childs.emplace_back(this->ruleId);
@@ -400,9 +400,6 @@ namespace jua
 					{
 						jua_rule_b& rt = global_lexer->createRule(-1);
 						rt = other;
-						if (rt.childs.size() == 1 || rt.ruleType == or_r)
-						{
-						}
 						r.childs.emplace_back(rt.ruleId);
 					}
 					return r;
@@ -478,7 +475,7 @@ namespace jua
 		std::unordered_map<std::string, int> unique_ids;
 		std::vector<jua_token*> tokens;
 		std::vector<int> _punctuation;
-		u32 used_tok = 0, last_used;
+		unsigned int used_tok = 0, last_used;
 		jua_ast_node* root = 0;
 		int last_uid = 0;
 	public:
@@ -510,7 +507,7 @@ namespace jua
 			return  *(_rules[_rules.size() - 1]);
 		}
 		//!! Get rule by ruleid
-		jua_rule_b& getRule(u32 ruleid)
+		jua_rule_b& getRule(unsigned int ruleid)
 		{
 			return *_rules[ruleid - 128];
 		}
@@ -564,10 +561,10 @@ namespace jua
 			return std::to_string(uid);
 		}
 
-		virtual u32 get_token_count() { return tokens.size(); }
-		virtual u32 get_used() { return used_tok; };
+		virtual unsigned int get_token_count() { return tokens.size(); }
+		virtual unsigned int get_used() { return used_tok; };
 
-		virtual void set_used(u32 used) { used_tok = used; };
+		virtual void set_used(unsigned int used) { used_tok = used; };
 		
 		~jua_grammar()
 		{
