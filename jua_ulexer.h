@@ -241,17 +241,17 @@ namespace jua
 	struct jua_base_lexer :public jua_lexer
 	{
 		jua_base_lexer(char* text, unsigned int size, bool caseSense = false) :jua_lexer(text, size, caseSense) {
-		//	jua_tchar + jua_tchar = jua_token_t::word;
+			jua_tchar + jua_tchar = jua_token_t::word;
 			jua_word + jua_digit = jua_variable;
-		//	jua_word + jua_tchar = jua_word;
-		//	jua_tchar + jua_digit = jua_variable;
+			jua_word + jua_tchar = jua_word;
+			jua_tchar + jua_digit = jua_variable;
 			jua_variable + jua_number = jua_variable;
 			jua_variable + jua_word = jua_variable;
 			jua_separator + jua_separator = jua_separator;
 			char sp = '_';
-			jua_word + sp = jua_variable;
+			jua_tchar + sp = jua_variable;
 			jua_variable + sp = jua_variable;
-			sp + jua_word = jua_variable;
+			sp + jua_tchar = jua_variable;
 		}
 	};
 }
