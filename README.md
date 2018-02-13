@@ -7,5 +7,5 @@ Live in headers
 
 Just include jua.h and enjoy
 
-Work under MSVS 2015 Update 3 ,other compilers I didn't test
+Work under MSVS 2015 Update 3 (only Windows OS are curently supported) ,other compilers I didn't test
 Copyright (C) 2018 
