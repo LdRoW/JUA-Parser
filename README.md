@@ -1,5 +1,5 @@
 # JUA-Parser
-Recursive Parser Generator Framework completely in C++
+Recursive Parser Generator Framework completely in C++(Provide lexer and parser generation)
 
 A little bit stupid but it is only start
 
