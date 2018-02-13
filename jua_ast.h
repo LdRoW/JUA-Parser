@@ -1,7 +1,4 @@
-/*
-		Copyright (C) 2018 Michailo Yarush
-		Do not delete this comment block. Respect others' work!
-*/
+
 
 #pragma once
 #include "jua_ulexer.h"
