@@ -1,6 +1,6 @@
 /*
       More : https://github.com/LdRoW/JUA-Parser
-      Copyright (C) 2018
+      Copyright (C) 2018 LdRoW
 */
 
 #pragma once
