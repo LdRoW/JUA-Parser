@@ -97,6 +97,15 @@ namespace jua
 			this->lexemType = lextype;
 			this->ruleType = none_r;
 		}
+		jua_rule_b(const jua_rule_b& other)
+		{
+			this->lexemType = other.lexemType;
+			this->ruleType = other.ruleType;
+			this->ruleId = other.ruleId;
+			this->childs = other.childs;
+			this->Flags = other.Flags;
+			this->func_c = other.func_c;
+		}
 		~jua_rule_b()
 		{
 		}
@@ -469,13 +478,13 @@ namespace jua
 			return *this;
 		}
 	};
-	struct jua_grammar :jua_grammar_impl
+	_declspec(align(32)) struct jua_grammar :jua_grammar_impl
 	{
 	private:
 		std::unordered_map<std::string, int> unique_ids;
 		std::vector<jua_token*> tokens;
 		std::vector<int> _punctuation;
-		unsigned int used_tok = 0, last_used;
+		unsigned int used_tok = 0, last_used=0;
 		jua_ast_node* root = 0;
 		int last_uid = 0;
 	public:
@@ -535,16 +544,13 @@ namespace jua
 		}
 		//!! creates unique id for word or if word is already presented
 		// try to find it in info from lexer
-		int make_word(std::string g)
+		int make_word(const std::string& g)
 		{
 			if (unique_ids.find(g) != unique_ids.end()) {
-				
 				return  unique_ids[g];
 			}
-			else
-			{
+			else{
 				unique_ids[g] =  last_uid += 1;
-
 				return  unique_ids[g];
 			}
 		}

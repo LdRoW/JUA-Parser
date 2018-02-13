@@ -63,14 +63,14 @@ namespace jua
 	static jua_token_t jua_whspace = whitespace;
 	static jua_token_t jua_digit = digit;
 
-	int& operator+(jua_token_t& one, jua_token_t& other) {
+	int& operator+(const jua_token_t& one,const jua_token_t& other) {
 		return global_map->getPairRes(std::pair<int, int>((int)one, (int)other));
 	}
-	int& operator+(char& one, jua_token_t& other) {
+	int& operator+(const char& one,const jua_token_t& other) {
 		global_map->addSpecialChar(one);
 		return global_map->getPairRes(std::pair<int, int>((int)one, (int)other));
 	}
-	int& operator+(jua_token_t& one, char& other) {
+	int& operator+(const jua_token_t& one,const char& other) {
 		global_map->addSpecialChar(other);
 		return global_map->getPairRes(std::pair<int, int>((int)one, (int)other));
 	}
@@ -224,8 +224,6 @@ namespace jua
 					tok_size = 0;
 					cTokenT = -1;
 					cCharT = -1;
-					if (tmp_t != whitespace)
-						c_pos--;
 				}
 				else if (tmp_t != jua_token_t::none&&tmp_t != jua_token_t::whitespace) {
 					++tok_size;

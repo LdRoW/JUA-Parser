@@ -11,7 +11,7 @@ namespace jua
 	//!! Provide your visit virtual functions here
 	struct jua_ast_visitor_base
 	{
-		
+
 	};
 
 	struct jua_ast_node
@@ -21,9 +21,9 @@ namespace jua
 		virtual void visit(jua_ast_visitor_base*visitor) {};
 		jua_ast_node()
 		{
-			Token = new jua_token(0,0,0);
+			Token = new jua_token(0, 0, 0);
 		}
-		~jua_ast_node()
+		virtual	 ~jua_ast_node()
 		{
 			if (this->child_nodes.size())
 			{
