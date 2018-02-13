@@ -36,3 +36,18 @@ struct calc :public jua_grammar
 		this->start = expr;
 	}
 };
+int main(int argc, const char** argv)
+{
+	char* pr = "5+6+5+x ";
+	//Using base lexer 
+	jua::jua_base_lexer* bb = new jua_base_lexer(pr, strlen(pr));
+	//Parse for tokens
+	bb->parse(false);
+	//Initialize parser from lexer
+	calc* cl = new calc(bb);
+	// Create ast_node
+	auto node = cl->scan_x3();
+	delete bb;
+	delete cl;
+	return 0;
+}
