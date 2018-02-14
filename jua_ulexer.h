@@ -30,6 +30,19 @@ namespace jua
 		std::unordered_map<std::pair<int, int>, int, jua_hasher<int, int>> _map;
 		std::vector<int> special_char;
 	public:
+		jua_token_t_map()
+		{}
+		jua_token_t_map(const jua_token_t_map&other)
+		{
+			this->_map = other._map;
+			this->special_char = other.special_char;
+		}
+		jua_token_t_map& operator=(const jua_token_t_map&other)
+		{
+			this->_map = other._map;
+			this->special_char = other.special_char;
+			return *this;
+		}
 		int& getPairRes(std::pair<int, int> pair) {
 			return _map[pair];
 		}
@@ -99,10 +112,10 @@ namespace jua
 		int tok_start_pos;
 		int tok_sz;
 		jua_token(int token_t, int tok_st, int tok_s) :tok_t(token_t), tok_start_pos(tok_st), tok_sz(tok_s) {
-
+			value.shrink_to_fit();
 		}
-		jua_token(char* t, int token_t, int tok_st, int tok_s) :tok_t(token_t), tok_start_pos(tok_st), tok_sz(tok_s) {
-			value = std::string(t + tok_st, tok_s);
+		jua_token(char* t, int token_t, int tok_st, int tok_s) :tok_t(token_t), tok_start_pos(tok_st), tok_sz(tok_s),value(t+tok_st,tok_s) {
+			value.shrink_to_fit();
 		}
 		jua_token(const jua_token& other)
 		{
@@ -110,6 +123,16 @@ namespace jua
 			this->tok_t = other.tok_t;
 			this->tok_sz = other.tok_sz;
 			this->tok_start_pos = other.tok_start_pos;
+			value.shrink_to_fit();
+		}
+		jua_token& operator=(const jua_token& other)
+		{
+			this->value = other.value;
+			this->tok_t = other.tok_t;
+			this->tok_sz = other.tok_sz;
+			this->tok_start_pos = other.tok_start_pos;
+			value.shrink_to_fit();
+			return *this;
 		}
 	};
 	struct jua_lexer
@@ -134,10 +157,6 @@ namespace jua
 		}
 		~jua_lexer() {
 			delete ptext;
-			for (auto&it : tokens)
-			{
-				delete it;
-			}
 		}
 		inline bool isLnBreak(char c) {
 			return c == '\n' || c == '\r';
@@ -223,6 +242,8 @@ namespace jua
 					tok_start = 0;
 					tok_size = 0;
 					cTokenT = -1;
+					if (cCharT != whitespace)
+						c_pos--;
 					cCharT = -1;
 				}
 				else if (tmp_t != jua_token_t::none&&tmp_t != jua_token_t::whitespace) {
@@ -246,6 +267,10 @@ namespace jua
 			jua_variable + jua_number = jua_variable;
 			jua_variable + jua_word = jua_variable;
 			jua_separator + jua_separator = jua_separator;
+			jua_digit + jua_digit = jua_number;
+			jua_number + jua_digit = jua_number;
+			jua_number + '.' = jua_number;
+			jua_digit + '.' = jua_number;
 			char sp = '_';
 			jua_tchar + sp = jua_variable;
 			jua_variable + sp = jua_variable;

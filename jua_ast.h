@@ -1,4 +1,7 @@
-
+/*
+		Copyright (C) 2018 Michailo Yarush
+		Do not delete this comment block. Respect others' work!
+*/
 
 #pragma once
 #include "jua_ulexer.h"
@@ -20,6 +23,17 @@ namespace jua
 		{
 			Token = new jua_token(0, 0, 0);
 		}
+		jua_ast_node(const jua_ast_node& other)
+		{
+			*this->Token = *other.Token;
+			this->child_nodes = other.child_nodes;
+		}
+		jua_ast_node& operator=(const jua_ast_node& other)
+		{
+			*this->Token = *other.Token;
+			this->child_nodes = other.child_nodes;
+			return *this;
+		}
 		virtual	 ~jua_ast_node()
 		{
 			if (this->child_nodes.size())
@@ -28,8 +42,11 @@ namespace jua
 				{
 					delete n;
 				}
+				this->child_nodes.clear();
 			}
-			if (Token) { delete Token; Token = 0; };
+			if (Token) {
+				std::cout << "Delete " << Token->value << " \n";
+				delete Token; Token = 0; };
 		}
 	};
 }
