@@ -1,5 +1,5 @@
 /*
-		Copyright (C) 2018 Michailo Yarush
+		Copyright (C) 2018 LdRoW
 		Do not delete this comment block. Respect others' work!
 */
 
@@ -8,10 +8,8 @@
 
 namespace jua
 {
-	//!! Provide your visit virtual functions here
 	struct jua_ast_visitor_base
 	{
-
 	};
 
 	struct jua_ast_node
@@ -23,10 +21,9 @@ namespace jua
 		{
 			Token = new jua_token(0, 0, 0);
 		}
-		jua_ast_node(const jua_ast_node& other)
+		jua_ast_node(const jua_ast_node& other):child_nodes(other.child_nodes)
 		{
 			*this->Token = *other.Token;
-			this->child_nodes = other.child_nodes;
 		}
 		jua_ast_node& operator=(const jua_ast_node& other)
 		{
@@ -41,12 +38,14 @@ namespace jua
 				for (auto&n : child_nodes)
 				{
 					delete n;
+					n = 0;
 				}
 				this->child_nodes.clear();
 			}
 			if (Token) {
-				std::cout << "Delete " << Token->value << " \n";
-				delete Token; Token = 0; };
+				delete Token; 
+				Token = 0;
+			};
 		}
 	};
 }
