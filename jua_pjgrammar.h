@@ -5,10 +5,6 @@ Do not delete this comment block. Respect others' work!
 
 #pragma once
 #include "jua.h"
-#include <functional>
-#include <map>
-#include <iostream>
-#include <bitset>
 
 namespace jua_pj
 {
@@ -28,14 +24,13 @@ namespace jua_pj
 	struct jua_grammar_impl
 	{
 		virtual	jua::jua_token* get_token() = 0;
-		virtual	jua::jua_token* get_token(size_t pos) = 0;
+		virtual	jua::jua_token* get_token(unsigned int pos) = 0;
 		virtual	jua::jua_token* pop_token() = 0;
 		virtual unsigned int get_token_count() = 0;
 		virtual bool can_get_token() = 0;
 		virtual void set_used(unsigned int used) {};
 		virtual unsigned int get_used() = 0;
 		virtual int get_trans(int one, int two) = 0;
-		virtual std::string_view getTokenByUniqueID(int uid) = 0;
 		virtual jua_rule& createRule(int lexemType = -1) = 0;
 		virtual jua_rule& getRule(unsigned int id) = 0;
 		virtual bool isPunctuation(int uid) = 0;
@@ -53,10 +48,10 @@ namespace jua_pj
 		ePlus,
 		eOneOrNull,
 		eTransient,
-		eTryRenew,
-		ePushChildsUp,
 		eHideAstNode,
-		ePunctuation
+		ePunctuation,
+		eShiftPreffered,
+		eReducePreffered
 	};
 
 	struct jua_rule
@@ -70,7 +65,24 @@ namespace jua_pj
 
 #pragma region FlagsCheckFunctions
 
-
+		void setStar() {
+			Flags[eStar] = true;
+			Flags[ePlus] = false;
+			Flags[eOneOrNull] = false;
+		}
+		void setPlus() {
+			Flags[eStar] = false;
+			Flags[ePlus] = true;
+			Flags[eOneOrNull] = false;
+		}
+		void setOneOrNull() {
+			Flags[eStar] = false;
+			Flags[ePlus] = false;
+			Flags[eOneOrNull] = true;
+		}
+		void setTransparent() {
+			Flags[eTransient] = true;
+		}
 		inline	bool isStar()const
 		{
 			return Flags.test(eStar);
@@ -87,14 +99,6 @@ namespace jua_pj
 		{
 			return Flags.test(eTransient);
 		}
-		inline	bool isTryRenew() const
-		{
-			return Flags.test(eTryRenew);
-		}
-		inline	bool isPushChildsUp() const
-		{
-			return Flags.test(ePushChildsUp);
-		}
 		inline	bool isHideAstNode() const
 		{
 			return Flags.test(eHideAstNode);
@@ -106,10 +110,10 @@ namespace jua_pj
 
 #pragma endregion
 		jua_rule() {};
-		jua_rule(unsigned int lextype) :lexemType(lextype), Flags(0) {
+		jua_rule( int lextype) :lexemType(lextype), Flags(0) {
 		}
-		jua_rule(const jua_rule& other) :lexemType(other.lexemType), ruleId(other.ruleId), childs(other.childs), Flags(other.Flags),
-			ast_creation_fn(other.ast_creation_fn) {
+		jua_rule(const jua_rule& other) :lexemType(other.lexemType), ruleId(other.ruleId), childs(other.childs),
+			Flags(other.Flags), ast_creation_fn(other.ast_creation_fn) {
 		}
 		~jua_rule() {}
 		jua_ast_node* parse_follow() {
@@ -117,13 +121,13 @@ namespace jua_pj
 			bool isStarOrPlus = false;
 			jua::jua_ast_node* node = ast_creation_fn();
 			jua::jua_ast_node* sres = 0;
-			for (size_t n = 0; n < childs.size(); ++n) {
+			for (unsigned int n = 0; n < childs.size(); ++n) {
 
 				auto& rule = global_lexer->getRule(childs[n]);
 				isStarOrOneNull = rule.isOneOrNull() || rule.isStar();
 				isStarOrPlus = rule.isStar() || rule.isPlus();
 				if (isStarOrPlus) {
-					size_t used = 0, count = 0;
+					unsigned int used = 0, count = 0;
 					jua::jua_ast_node* snode = new jua::jua_ast_node();
 					for (;; ++count) {
 						used = global_lexer->get_used();
@@ -133,7 +137,7 @@ namespace jua_pj
 							break;
 						}
 						else {
-							if (rule.isPushChildsUp() || rule.isTransient()) {
+							if (rule.isTransient()) {
 								node->child_nodes.insert(node->child_nodes.cend(), sres->child_nodes.begin(), sres->child_nodes.end());
 								sres->child_nodes.clear();
 								delete sres;
@@ -164,7 +168,7 @@ namespace jua_pj
 						delete sres;
 						continue;
 					}
-					else if (rule.isPushChildsUp() || rule.isTransient()) {
+					else if (rule.isTransient()) {
 						node->child_nodes.insert(node->child_nodes.cend(), sres->child_nodes.begin(), sres->child_nodes.end());
 						sres->child_nodes.clear();
 						delete sres;
@@ -191,51 +195,55 @@ namespace jua_pj
 		jua_ast_node* parse_or() {
 			if (!global_lexer->can_get_token())
 				return 0;
-			auto tk = global_lexer->pop_token()->tok_t;
-			int ch = global_lexer->get_trans(ruleId, tk) - 1;
-			if (ch < 0)
-				return 0;
-			auto& rule = global_lexer->getRule(childs[ch]);
-			jua::jua_ast_node* sres = 0;
-			jua::jua_ast_node* node = ast_creation_fn();
-			bool isStarOrPlus = rule.isStar() || rule.isPlus();
-			if (isStarOrPlus) {
-				size_t count = 0, used = 0;
-				for (;; ++count) {
-					used = global_lexer->get_used();
-					sres = rule.parse();
-					if (sres) {
-						if (rule.isPushChildsUp() || rule.isTransient()) {
-							node->child_nodes.insert(node->child_nodes.cbegin(), sres->child_nodes.begin(), sres->child_nodes.end());
-							sres->child_nodes.clear();
-							delete sres;
-						}
-						else
-							node->child_nodes.emplace_back(sres);
-					}
-					else {
-						if (count == 0 && rule.isPlus()) {
-							delete node;
-							return 0;
-						}
-						global_lexer->set_used(used);
-						return node;
-					}
-				}
-				//return node;
+			/*if (this->Flags[eShiftPreffered]) {
+				
 			}
-			else {
-				sres = rule.parse();
-				if (!sres)
+			else*/ {
+				auto tk = global_lexer->pop_token()->tok_t;
+				int ch = global_lexer->get_trans(ruleId, tk) - 1;
+				if (ch < 0)
 					return 0;
-				if (rule.isTransient()) {
-					*node = *sres;
-					delete sres;
-					return node;
+				auto& rule = global_lexer->getRule(childs[ch]);
+				jua::jua_ast_node* sres = 0;
+				jua::jua_ast_node* node = ast_creation_fn();
+				bool isStarOrPlus = rule.isStar() || rule.isPlus();
+				if (isStarOrPlus) {
+					unsigned int count = 0, used = 0;
+					for (;; ++count) {
+						used = global_lexer->get_used();
+						sres = rule.parse();
+						if (sres) {
+							if (rule.isTransient()) {
+								node->child_nodes.insert(node->child_nodes.cbegin(), sres->child_nodes.begin(), sres->child_nodes.end());
+								sres->child_nodes.clear();
+								delete sres;
+							}
+							else
+								node->child_nodes.emplace_back(sres);
+						}
+						else {
+							if (count == 0 && rule.isPlus()) {
+								delete node;
+								return 0;
+							}
+							global_lexer->set_used(used);
+							return node;
+						}
+					}
 				}
 				else {
-					node->child_nodes.emplace_back(sres);
-					return node;
+					sres = rule.parse();
+					if (!sres)
+						return 0;
+					if (rule.isTransient()) {
+						*node = *sres;
+						delete sres;
+						return node;
+					}
+					else {
+						node->child_nodes.emplace_back(sres);
+						return node;
+					}
 				}
 			}
 		}
@@ -282,11 +290,10 @@ namespace jua_pj
 				r.childs.emplace_back(this->ruleId);
 				if (other.ruleId == -1) {
 					auto& ss = global_lexer->createRule(-1);
-					ss.Flags = other.Flags;;
+					ss.Flags = other.Flags;
 					ss.childs = other.childs;
 					other.ruleId = ss.ruleId;
 				}
-				//	else
 				r.childs.emplace_back(other.ruleId);
 				return r;
 			}
@@ -371,16 +378,17 @@ namespace jua_pj
 		}
 		jua_rule& operator%=(const jua_rule& other)
 		{
-			//this->childs = other.childs;
 			this->Flags[eRuleFollow] = true;
-			this->Flags = other.Flags;
-			this->ast_creation_fn = other.ast_creation_fn;
-			this->lexemType = other.lexemType;
 			if (this->ruleId != -1)
 			{
 				if (other.ruleId != -1)
 					this->childs.emplace_back(other.ruleId);
 			}
+			return *this;
+		}
+		jua_rule& operator=(const int& other)
+		{
+			this->lexemType = other;
 			return *this;
 		}
 		jua_rule& operator*()
@@ -429,7 +437,7 @@ namespace jua_pj
 					get_first_term(s, rl.childs[0]);
 				}
 				else if (rl.Flags[eRuleOr]) {
-					for (size_t n = 0; n < rl.childs.size(); ++n) {
+					for (unsigned int n = 0; n < rl.childs.size(); ++n) {
 						get_first_term(s, rl.childs[n]);
 					}
 				}
@@ -452,15 +460,15 @@ namespace jua_pj
 				if (rule->Flags[eRuleOr]) {
 					if (rule->childs.size() == 1)
 						continue;
-					for (size_t n = 0; n < rule->childs.size(); ++n) {
-
+					for (unsigned int n = 0; n < rule->childs.size(); ++n) {
 						get_first_term(terms, rule->childs[n]);
-						for (size_t i = 0; i < terms.size(); ++i) {
+						for (unsigned int i = 0; i < terms.size(); ++i) {
 
 							if (fsm[rule->ruleId][terms[i]] == 0)
 								fsm[rule->ruleId][terms[i]] = n + 1;
 							else {
-								std::cout << "Conflict in rule " << rule->childs[n] << " : " << rule->ruleId << " by term " << terms[i] << " has " << fsm[rule->ruleId][terms[i]] << " \n";
+								rule->Flags[eShiftPreffered] = true;
+								std::cout << "Conflict in rule " << rule->ruleId << " : " << rule->childs[n] << " by term " << terms[i] << " has " << fsm[rule->ruleId][terms[i]] << " \n";
 							}
 						}
 						terms.clear();
@@ -498,11 +506,12 @@ namespace jua_pj
 				rl->childs.emplace_back(ri.ruleId);
 			}
 			rl->Flags[eStar] = true;
+			rl->Flags[eRuleFollow] = true;
 			return  *rl;
 		}
 		jua_rule& createPlusRule(jua_rule& rule) {
 			jua_rule* rl = _rules.emplace_back(new jua_rule(-1));
-			rl->ruleId = 127 + _rules.size(); 
+			rl->ruleId = 127 + _rules.size();
 			if (rule.ruleId != -1)
 				rl->childs.emplace_back(rule.ruleId);
 			else {
@@ -511,6 +520,7 @@ namespace jua_pj
 				rl->childs.emplace_back(ri.ruleId);
 			}
 			rl->Flags[ePlus] = true;
+			rl->Flags[eRuleFollow] = true;
 			return  *rl;
 		}
 		jua_rule& createOneOrNullRule(jua_rule& rule) {
@@ -524,6 +534,7 @@ namespace jua_pj
 				rl->childs.emplace_back(ri.ruleId);
 			}
 			rl->Flags[eOneOrNull] = true;
+			rl->Flags[eRuleFollow] = true;
 			return  *rl;
 		}
 
@@ -543,7 +554,7 @@ namespace jua_pj
 			return tokens[last_used = used_tok - 1];
 		};
 
-		virtual	jua::jua_token* get_token(size_t pos) {
+		virtual	jua::jua_token* get_token(unsigned int pos) {
 			return tokens[pos];
 		}
 
@@ -555,7 +566,7 @@ namespace jua_pj
 			return used_tok < tokens.size();
 		}
 		//! sets punctuation ruleid 
-		void setPunctuation(const size_t uid) {
+		void setPunctuation(const unsigned int uid) {
 			getRule(uid).Flags.set(ePunctuation, true);
 		}
 		virtual bool isPunctuation(const int uid) {
@@ -576,15 +587,6 @@ namespace jua_pj
 				unique_ids[g] = last_uid += 1;
 				return  unique_ids[g];
 			}
-		}
-
-		virtual std::string_view getTokenByUniqueID(int uid) {
-			for (auto[tk, id] : unique_ids) {
-				if (id == uid) {
-					return const_cast<std::string_view&>(tk);
-				}
-			}
-			return std::to_string(uid);
 		}
 
 		virtual unsigned int get_token_count() { return tokens.size(); }

@@ -28,24 +28,6 @@ namespace jua
 		whitespace,
 		separator
 	};
-	struct jua_lexer_rule {
-		virtual int parse(char c) {
-			return JUA_TOKEN_TYPE::match;
-		}
-	};
-	constexpr float pair(float a, float b)
-	{
-		return 0.5f*(a + b)*(a + b + 1) + b;
-	}
-	template<typename T, typename U>
-	struct jua_hasher {
-	public:
-		size_t operator()(std::pair<T, U>x) const throw() {
-			size_t h = pair(x.first, x.second);
-			return h;
-		}
-	};
-
 
 	JUA_TOKEN_TYPE const jua_tchar = tchar;
 	JUA_TOKEN_TYPE const jua_separator = separator;
@@ -70,10 +52,10 @@ namespace jua
 			this->special_char = other.special_char;
 			return *this;
 		}
-		int& getPairRes(int first, int second) {
+		int& getTransition(const int first,const int second) {
 			return _map[{first, second}];
 		}
-		int compute(int one, int two) {
+		int compute(const int one,const int two) {
 			if (one == whitespace)
 				return two;
 
@@ -82,34 +64,33 @@ namespace jua
 				return t->second;
 			return jua_error;
 		}
-		void addSpecialChar(int d) {
-			//if (!isSpecialChar(d))
+		void addSpecialChar(const char d) {
 			special_char[d] = true;
 		}
-		bool isSpecialChar(const int d) {
+		bool isSpecialChar(const char d) {
 			return special_char[d];
 		}
 	};
 	jua_token_t_map* global_map;
 
 	int& operator+(const JUA_TOKEN_TYPE& one, const JUA_TOKEN_TYPE& other) {
-		return global_map->getPairRes(one, other);
+		return global_map->getTransition(one, other);
 	}
 	int& operator+(const char& one, const JUA_TOKEN_TYPE& other) {
 		global_map->addSpecialChar(one);
-		return global_map->getPairRes(one, other);
+		return global_map->getTransition(one, other);
 	}
 	int& operator+(const JUA_TOKEN_TYPE& one, const char& other) {
 		global_map->addSpecialChar(other);
-		return global_map->getPairRes(one, other);
+		return global_map->getTransition(one, other);
 	}
 	struct jua_token
 	{
 		std::string_view value;
-		int tok_t;
-		jua_token(int token_t, char* tok_st, int tok_s) :tok_t(token_t), value(tok_st, tok_s) {
+		unsigned int tok_t;
+		jua_token(size_t token_t, char* tok_st, size_t tok_s) :tok_t(token_t), value(tok_st, tok_s) {
 		}
-		jua_token(std::string_view str, int token_t) : value(str), tok_t(token_t) {
+		jua_token(std::string_view str, size_t token_t) : value(str), tok_t(token_t) {
 		}
 		jua_token(const jua_token& other) :value(other.value), tok_t(other.tok_t) {
 		}
@@ -129,13 +110,12 @@ namespace jua
 		size_t tsize = 0;
 
 	public:
-		int lastTypedUniqueId = 32;
+		int lastTypedUniqueId = 64;
 		jua_token_t_map token_Tmap;
 		std::vector<jua_token*> tokens;
 		std::vector<std::string> reserved_words;
 		std::vector<std::string> separators;
 		std::unordered_map<std::string_view, int> unique_id;
-		bool TryWorkIfBadLexem = false;
 		bool caseSensative = false;
 
 		jua_lexer() :tsize(0), caseSensative(false) {
@@ -182,16 +162,11 @@ namespace jua
 			if (token_Tmap.isSpecialChar(d))	return d;
 			return JUA_TOKEN_TYPE::separator;
 		}
-		virtual bool isUncompleteType(const int t)
-		{
-			return false;
-		}
-		//!! tok_size is always > 0 , check parse function
 		virtual std::string_view performValue(int tok_t, int tok_start, int tok_size)
 		{
-			return std::string_view(ptext + tok_start, tok_size);
+			return std::forward<std::string_view>(std::string_view(ptext + tok_start, tok_size));
 		}
-		//!! Produce map item with jua_whspace and jua_separator as jua_match
+
 		template<JUA_TOKEN_TYPE right, JUA_TOKEN_TYPE...leftparam>
 		constexpr void process_batch_match()
 		{
@@ -202,7 +177,6 @@ namespace jua
 			((left + rparam = res), ...);
 		};
 		
-			//!! Get pointer to text 
 		char* getText()
 		{
 			return ptext;
@@ -239,9 +213,9 @@ namespace jua
 				if (res_T == jua_match) {
 					if (tok_size == 0)
 						return -1;
-					std::string_view str = std::string_view(ptext + tok_start, tok_size);
-
-					useUniqueTokenType = isReservedWord(str)|| cTokenT == jua_separator|| cTokenT == jua_word;
+					std::string_view str = performValue(cTokenT, tok_start, tok_size);
+					if (cTokenT == jua_digit) cTokenT = jua_number;
+					useUniqueTokenType = isReservedWord(str) || cTokenT == jua_separator;// || cTokenT == jua_word;
 
 					if (useUniqueTokenType) {
 						auto& pT = unique_id.find(str);
@@ -269,7 +243,7 @@ namespace jua
 		}
 	};
 	//!! This is light and basic lexer with such defined terminals as:
-	// Number,Float , Variable(With '_' char ), Separators
+	// Number,Float , Variable(With '_' char ), Separators, String
 	struct jua_base_lexer :public jua_lexer
 	{
 		static const JUA_TOKEN_TYPE  jua_variable = (JUA_TOKEN_TYPE)10;
@@ -279,11 +253,11 @@ namespace jua
 		jua_base_lexer() :jua_lexer() {
 
 			// a+a=aa
-			jua_tchar + jua_tchar = jua_word;
+			jua_tchar + jua_tchar = jua_variable;
 			// aa+b=aab
-			jua_word + jua_tchar = jua_word;
+		//	jua_word + jua_tchar = jua_word;
 			// aa+5=aa5 -> variable
-			jua_word + jua_digit = jua_variable;
+		//	jua_word + jua_digit = jua_variable;
 			// a+5= a5 -> variable
 			jua_tchar + jua_digit = jua_variable;
 			// a5 +5 = a55 
