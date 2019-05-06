@@ -1,6 +1,6 @@
 /*
-Copyright (C) 2018 LdRoW
-Do not delete this comment block. Respect others' work!
+Copyright (C) 2019 LdRoW
+Do not delete this comment block.
 */
 
 #pragma once
