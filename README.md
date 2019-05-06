@@ -7,4 +7,4 @@ Just include <b>"jua.h"</b>
 
 Works under Windows OS
 
-Copyright (C) 2019 Mikhailo Yarush
+Copyright (C) 2019 Mykhailo Yarush
